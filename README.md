@@ -17,7 +17,7 @@ Bankai is a plain static website: no build step, no database, nothing to configu
 
 That link is what you open on your phone and send to friends.
 
-**Updating later:** change the files in the repo. Also bump `VERSION` at the top of `sw.js` (for example `bankai-v1.0.1`) so installed copies pick up the new version. Users then see an "Update" prompt.
+**Updating later:** change the files in the repo and bump `VERSION` at the top of `sw.js` (and `APP_VERSION` in `js/app.js`). Installed copies update by themselves the next time they're opened (Settings → App version → Check for updates forces it). If someone is mid-workout or mid-edit, Bankai waits and offers a Reload instead.
 
 ## 2. Add it to your home screen
 

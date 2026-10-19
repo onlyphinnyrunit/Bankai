@@ -880,7 +880,8 @@ function viewSettings() {
         <details class="help"><summary>Android (Chrome)</summary><ol><li>Open Bankai in <strong>Chrome</strong>.</li><li>Tap <strong>⋮</strong> (top right).</li><li>Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li></ol></details>
         <p class="small muted">Once installed it opens full-screen and works offline. Embedded videos still need internet.</p></section>
       <section class="card stack-sm"><h2 class="eyebrow">Danger zone</h2><button type="button" class="btn danger" data-act="erase">${icon('trash')}Erase all Bankai data on this device</button></section>
-      <p class="small muted" style="text-align:center">Bankai · v1.1 · Your data never leaves this device unless you export it.</p>
+      <section class="card stack-sm"><h2 class="eyebrow">App version</h2><div class="kv"><span>Installed</span><span>v${APP_VERSION}</span></div><button type="button" class="btn" data-act="update">Check for updates</button><span class="small muted">Updates install by themselves when you open Bankai. Your data is kept.</span></section>
+      <p class="small muted" style="text-align:center">Bankai · Your data never leaves this device unless you export it.</p>
     </div>`,
     mount(root, signal) {
       savedPill(root, signal);
@@ -919,6 +920,12 @@ function viewSettings() {
         const a = el.dataset.act;
         if (a === 'addcat') { const n = await promptDialog({ title: 'New category', label: 'Name', placeholder: 'e.g. Forearms' }); if (n && !s.categories.includes(n)) { s.categories.push(n); save(); rerender(); } }
         if (a === 'templates') templatesSheet();
+        if (a === 'update') {
+          el.disabled = true; el.textContent = 'Checking…';
+          const found = await checkForUpdate();
+          toast(found ? 'Update found — Bankai will reload in a moment' : 'You’re on the latest version', { ms: 4000 });
+          el.disabled = false; el.textContent = 'Check for updates';
+        }
         if (a === 'tour') { state.settings.tourDone = false; save(); go('/'); setTimeout(() => { if (!tourActive()) startTour(); }, 500); }
         if (a === 'persist') { const ok = await navigator.storage?.persist?.(); toast(ok ? 'Storage protected' : 'Your browser decides this automatically. Installing Bankai to your home screen usually helps.', { ms: 5000 }); rerender(); }
         if (a === 'backup-full' || a === 'backup-data') {
@@ -995,28 +1002,53 @@ async function boot() {
   registerSW();
 }
 
+export const APP_VERSION = '1.1.1';
+let swReg = null;
+
+/** Asks the server for a newer version. Returns true if one is on its way. */
+export async function checkForUpdate() {
+  if (!swReg) return false;
+  try { await swReg.update(); } catch { return false; }
+  return !!(swReg.installing || swReg.waiting);
+}
+
 function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   if (location.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(location.hostname)) return;
-  navigator.serviceWorker.register('sw.js').then((reg) => {
-    reg.addEventListener('updatefound', () => {
-      const nw = reg.installing;
-      nw?.addEventListener('statechange', () => {
-        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-          toast('A new version of Bankai is ready', { action: 'Update', ms: 15000, onAction: () => nw.postMessage('skipWaiting') });
-        }
-      });
-    });
-  }).catch((e) => console.warn('SW registration failed', e));
   // Only reload when an *update* takes over. On a first visit the new worker
   // claims the page too, and reloading then would wipe what the user is doing.
   const hadController = !!navigator.serviceWorker.controller;
   let reloaded = false;
+  let pending = false;
+  const busy = () => {
+    const p = (location.hash.slice(1) || '/').split('?')[0];
+    return p === '/workout' || /\/edit$/.test(p) || !!document.querySelector('dialog[open]') || !!document.querySelector('.tour');
+  };
+  const reloadNow = () => { if (reloaded) return; reloaded = true; flush().then(() => location.reload()); };
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController || reloaded) return;
-    reloaded = true;
-    flush().then(() => location.reload());
+    if (!hadController) return;
+    if (!busy()) { reloadNow(); return; }
+    // Don't yank the screen away mid-workout or mid-edit: offer it, and apply next time the app is reopened.
+    pending = true;
+    toast('Bankai was updated', { action: 'Reload', ms: 20000, onAction: reloadNow });
   });
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    swReg = reg;
+    // An update that downloaded earlier but is still waiting: switch to it now.
+    if (reg.waiting && navigator.serviceWorker.controller) reg.waiting.postMessage('skipWaiting');
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      nw?.addEventListener('statechange', () => { if (nw.state === 'installed' && reg.waiting) reg.waiting.postMessage('skipWaiting'); });
+    });
+  }).catch((e) => console.warn('SW registration failed', e));
+  // Check for updates whenever the app comes back to the screen (at most every 5 minutes), and hourly while open.
+  let lastCheck = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (pending && !busy()) { reloadNow(); return; }
+    if (Date.now() - lastCheck > 5 * 60 * 1000) { lastCheck = Date.now(); checkForUpdate(); }
+  });
+  setInterval(() => { lastCheck = Date.now(); checkForUpdate(); }, 60 * 60 * 1000);
 }
 
 boot();

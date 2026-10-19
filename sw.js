@@ -1,6 +1,6 @@
 // Bankai service worker: offline app shell + cached fonts.
 // Bump VERSION whenever any app file changes so phones pick up the update.
-const VERSION = 'bankai-v1.1.0';
+const VERSION = 'bankai-v1.1.1';
 const SHELL = [
   './',
   './index.html',
@@ -30,7 +30,9 @@ const SHELL = [
 const FONT_CACHE = 'bankai-fonts';
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)));
+  // Take over as soon as the new files are cached, so updates arrive by themselves.
+  // cache: 'reload' skips the browser's HTTP cache, so an update never stores stale copies of old files.
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
