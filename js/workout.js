@@ -154,7 +154,7 @@ export function viewWorkout() {
     html: `<div class="stack wk">
       <div class="wk-top">
         <button type="button" class="icon-btn" data-act="pause" aria-label="Pause or finish workout">${icon('pause')}</button>
-        <div class="grow"><div class="lbl"><span>Exercise ${s.index + 1} of ${n}</span><span data-elapsed>${fmtClockLong(elapsedMs(s))}</span></div>
+        <div class="grow"><div class="lbl"><span>Exercise ${s.index + 1} of ${n}</span><span class="elapsed" title="Total workout time">${icon('timer')}<span class="sr">Elapsed time </span>Elapsed <b data-elapsed>${fmtClockLong(elapsedMs(s))}</b></span></div>
           <div class="bar" role="progressbar" aria-label="Workout progress" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${doneCount}"><i style="width:${Math.round((doneCount / n) * 100)}%"></i></div></div>
         <button type="button" class="icon-btn" data-act="list" aria-label="All exercises">${icon('more')}</button>
       </div>

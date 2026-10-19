@@ -89,7 +89,7 @@ body.no-tabs .tabbar { display: none; }
 
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
   height: calc(var(--tabbar-h) + var(--safe-b)); padding-bottom: var(--safe-b);
   background: color-mix(in srgb, var(--bg-2) 92%, transparent);
   backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
@@ -400,3 +400,62 @@ svg.chev { width: 18px; height: 18px; stroke: var(--muted); }
 /* Programmatic focus on page titles (for screen readers) shouldn't draw a box */
 [tabindex="-1"]:focus { outline: none; }
 @media (min-width: 900px) { .hscroll, .chips.scroll { margin: 0; padding-left: 0; padding-right: 0; } }
+
+/* ---------- Workout elapsed label ---------- */
+.wk-top .elapsed { display: inline-flex; align-items: center; gap: 4px; }
+.wk-top .elapsed svg { width: 14px; height: 14px; }
+.wk-top .elapsed b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ---------- Aiz ---------- */
+.aiz { display: flex; flex-direction: column; gap: 14px; min-height: calc(100dvh - var(--tabbar-h) - var(--safe-b) - 60px); }
+.aiz-head { display: flex; align-items: center; gap: 12px; }
+.aiz-av { width: 30px; height: 30px; border-radius: 15px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff;
+  background: radial-gradient(circle at 30% 30%, #C084FC, #7E22CE 70%); box-shadow: 0 0 14px rgba(173, 75, 243, .45); }
+.aiz-av svg { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.aiz-av.lg { width: 46px; height: 46px; border-radius: 23px; }
+.aiz-av.lg svg { width: 24px; height: 24px; }
+.aiz-log { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.aiz-msg { display: flex; gap: 8px; align-items: flex-start; max-width: 100%; }
+.aiz-msg.me { justify-content: flex-end; }
+.aiz-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; max-width: calc(100% - 38px); }
+.aiz-bubble { padding: 11px 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; border-top-left-radius: 6px; }
+.aiz-msg.me .aiz-bubble { background: var(--accent); color: var(--on-accent); border-color: transparent; border-radius: 18px; border-top-right-radius: 6px; max-width: 82%; white-space: pre-wrap; }
+.aiz-bubble p { margin: 0 0 6px; } .aiz-bubble p:last-child { margin-bottom: 0; }
+.aiz-bubble ul, .aiz-bubble ol { margin: 2px 0 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
+.aiz-bubble li::marker { color: var(--accent-ink); }
+.aiz-bubble strong { color: var(--text); }
+.aiz-bubble em { color: var(--muted); font-style: normal; font-size: 13px; }
+.aiz-bubble.typing { display: flex; gap: 5px; padding: 14px 16px; }
+.aiz-bubble.typing i { width: 7px; height: 7px; border-radius: 4px; background: var(--muted); animation: blink 1s infinite ease-in-out; }
+.aiz-bubble.typing i:nth-child(2) { animation-delay: .15s; } .aiz-bubble.typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .aiz-bubble.typing i { animation: none; opacity: .6; } }
+.aiz-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.aiz-chips .chip { min-height: 40px; white-space: normal; text-align: left; border-color: color-mix(in srgb, var(--accent) 45%, var(--line-2)); color: var(--accent-ink); }
+.aiz-action { border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--accent-soft); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.aiz-action .eyebrow { display: flex; align-items: center; gap: 6px; }
+.aiz-action .eyebrow svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
+.aiz-compose { position: sticky; bottom: calc(var(--tabbar-h) + var(--safe-b) + 8px); z-index: 5; display: flex; gap: 8px; align-items: flex-end; padding: 8px; margin: 0 -8px; border-radius: 24px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+@media (min-width: 900px) { .aiz-compose { bottom: 16px; } }
+.aiz-compose textarea { min-height: 48px; max-height: 140px; resize: none; border-radius: 22px; padding: 12px 16px; line-height: 1.4; }
+.aiz-compose .send { width: 48px; height: 48px; border-radius: 24px; background: var(--accent); color: var(--on-accent); border: 0; box-shadow: var(--accent-glow); }
+.aiz-compose .send svg { width: 20px; height: 20px; }
+.aiz-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: -6px; }
+
+/* ---------- Tutorial ---------- */
+.tour { position: fixed; inset: 0; z-index: 90; }
+.tour-hole { position: fixed; border-radius: 16px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .74); outline: 2px solid var(--accent-ink); outline-offset: 0; transition: left .2s ease, top .2s ease, width .2s ease, height .2s ease; pointer-events: none; }
+.tour-tip { position: fixed; background: var(--bg-2); border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--line)); border-radius: 20px; padding: 14px 16px 14px; box-shadow: var(--shadow), 0 0 30px rgba(147, 51, 234, .25); display: flex; flex-direction: column; gap: 8px; transition: top .2s ease, left .2s ease; }
+.tour-top { display: flex; justify-content: space-between; align-items: center; }
+.tour-count { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.tour-skip { background: none; border: 0; color: var(--muted); font-weight: 700; font-size: 13px; min-height: 36px; padding: 0 4px; }
+.tour-bar { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.tour-bar i { display: block; height: 100%; background: var(--accent); transition: width .2s ease; }
+.tour-title { font-size: 18px; }
+.tour-text { font-size: 15px; color: var(--text-2); line-height: 1.45; }
+.tour-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.tour-actions .btn { min-width: 84px; }
+@media (prefers-reduced-motion: reduce) { .tour-hole, .tour-tip, .tour-bar i { transition: none; } }
+body.touring { overflow: hidden; }
+[hidden] { display: none !important; }

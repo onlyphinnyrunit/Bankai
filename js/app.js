@@ -10,6 +10,8 @@ import { parseLink, storeFile, fmtBytes, forgetBlobUrl } from './media.js';
 import { mediaThumb, mediaMain, activateEmbed, hydrateMedia } from './mediaview.js';
 import { viewWorkout, viewSummary, startWorkout } from './workout.js';
 import { exportBackup, importBackupFile } from './backup.js';
+import { viewAiz } from './aiz.js';
+import { maybeStartTour, startTour, tourActive } from './tour.js';
 
 const main = document.getElementById('main');
 let cleanupView = null;
@@ -46,6 +48,7 @@ const routes = [
   [/^\/workout$/, viewWorkout],
   [/^\/summary\/([\w-]+)$/, viewSummary],
   [/^\/settings$/, viewSettings],
+  [/^\/aiz$/, viewAiz],
 ];
 
 function parseHash() {
@@ -78,6 +81,7 @@ export function render({ keepScroll = false } = {}) {
   if (keepScroll || samePage) window.scrollTo(0, scrollY); else window.scrollTo(0, 0);
   if (!samePage && !keepScroll) main.querySelector('h1')?.focus({ preventScroll: true });
   lastPath = path;
+  if (path === '/' && !keepScroll) maybeStartTour();
 }
 
 /** Delegated event helper: on(root, signal, 'click', '[data-act]', fn) */
@@ -663,6 +667,7 @@ function viewExercise({ params: [id], q }) {
         <div class="row" style="flex-wrap:wrap;gap:6px">${ex.category ? `<span class="tag">${h(ex.category)}</span>` : ''}${used.length ? `<span class="small muted">In ${used.map((x) => h(planName(x))).join(', ')}</span>` : ''}</div></div>
       ${ctx ? (stats.length ? `<div class="stat-grid" style="grid-template-columns:repeat(${Math.min(stats.length, 4)},minmax(0,1fr))">${stats.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${h(v)}</b></div>`).join('')}</div>` : `<button type="button" class="btn block" data-act="target">${icon('edit')}Set sets, reps, time & rest</button>`) + (it.note ? `<div class="notes-box small"><span class="eyebrow">Note</span><div class="pre">${h(it.note)}</div></div>` : '') : ''}
       ${cues.length ? `<section class="stack-sm"><h2 class="eyebrow">Technique</h2>${cues.map((c, i) => `<div class="cue"><b>${i + 1}</b><span>${h(c)}</span></div>`).join('')}</section>` : ''}
+      <a class="btn sm ghost" style="align-self:flex-start" href="#/aiz?q=${encodeURIComponent('How do I do ' + exName(ex) + '?')}">${icon('spark')}Ask Aiz about this exercise</a>
       <label class="field"><span>My notes</span><textarea class="input" data-notes placeholder="Weights that worked, how it felt, form reminders…" maxlength="8000">${h(ex.notes)}</textarea></label>
       ${ctx ? `<div class="sticky-foot"><label class="done-toggle"><input type="checkbox" class="check" data-done ${checked ? 'checked' : ''}>Done today</label>${next ? `<a class="btn primary big" style="flex:1.4" href="#/ex/${next.exerciseId}?p=${p.id}&i=${next.id}">Next ${icon('chev')}</a>` : `<a class="btn primary big" style="flex:1.4" href="#/plan/${p.id}">Finish</a>`}</div>` : ''}
     </div>`,
@@ -859,6 +864,7 @@ function viewSettings() {
         <label class="row" style="min-height:44px"><input type="checkbox" class="check" data-toggle="autoRest" ${s.autoRest ? 'checked' : ''}><span class="grow">Start rest timer when I tick a set</span></label>
         <label class="row" style="min-height:44px"><input type="checkbox" class="check" data-toggle="logDetails" ${s.logDetails ? 'checked' : ''}><span class="grow">Show weight & reps boxes for every set</span></label></section>
       <section class="card stack-sm"><h2 class="eyebrow">Categories</h2><div class="chips">${s.categories.map((c) => `<button type="button" class="chip" data-catedit="${h(c)}" aria-label="Edit category ${h(c)}">${h(c)}</button>`).join('')}<button type="button" class="chip" data-act="addcat">${icon('plus')}Add</button></div></section>
+      <section class="card stack-sm"><h2 class="eyebrow">Help</h2><span class="small muted">See the quick tour of Bankai’s buttons again, or ask Aiz how to do something.</span><div class="row" style="flex-wrap:wrap"><button type="button" class="btn" data-act="tour">Replay tutorial</button><a class="btn" href="#/aiz">${icon('spark')}Ask Aiz</a></div></section>
       <section class="card stack-sm"><h2 class="eyebrow">Starter plans</h2><span class="small muted">Load the Beginner Home Plan or the PPL × U/L split into your plans.</span><button type="button" class="btn" data-act="templates">Open starter plans</button></section>
       <section class="card stack-sm" aria-labelledby="bk"><h2 class="eyebrow" id="bk">Backup & restore</h2>
         <p class="small">Everything in Bankai — plans, history, and your photos & videos — is saved <strong>only on this device</strong>, in this browser. Nothing is uploaded. Clearing browser data, uninstalling, or switching phones loses it unless you have a backup. YouTube and other links are stored as links.</p>
@@ -874,7 +880,7 @@ function viewSettings() {
         <details class="help"><summary>Android (Chrome)</summary><ol><li>Open Bankai in <strong>Chrome</strong>.</li><li>Tap <strong>⋮</strong> (top right).</li><li>Tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li></ol></details>
         <p class="small muted">Once installed it opens full-screen and works offline. Embedded videos still need internet.</p></section>
       <section class="card stack-sm"><h2 class="eyebrow">Danger zone</h2><button type="button" class="btn danger" data-act="erase">${icon('trash')}Erase all Bankai data on this device</button></section>
-      <p class="small muted" style="text-align:center">Bankai · v1.0 · Your data never leaves this device unless you export it.</p>
+      <p class="small muted" style="text-align:center">Bankai · v1.1 · Your data never leaves this device unless you export it.</p>
     </div>`,
     mount(root, signal) {
       savedPill(root, signal);
@@ -913,6 +919,7 @@ function viewSettings() {
         const a = el.dataset.act;
         if (a === 'addcat') { const n = await promptDialog({ title: 'New category', label: 'Name', placeholder: 'e.g. Forearms' }); if (n && !s.categories.includes(n)) { s.categories.push(n); save(); rerender(); } }
         if (a === 'templates') templatesSheet();
+        if (a === 'tour') { state.settings.tourDone = false; save(); go('/'); setTimeout(() => { if (!tourActive()) startTour(); }, 500); }
         if (a === 'persist') { const ok = await navigator.storage?.persist?.(); toast(ok ? 'Storage protected' : 'Your browser decides this automatically. Installing Bankai to your home screen usually helps.', { ms: 5000 }); rerender(); }
         if (a === 'backup-full' || a === 'backup-data') {
           el.disabled = true;
@@ -1001,8 +1008,15 @@ function registerSW() {
       });
     });
   }).catch((e) => console.warn('SW registration failed', e));
+  // Only reload when an *update* takes over. On a first visit the new worker
+  // claims the page too, and reloading then would wipe what the user is doing.
+  const hadController = !!navigator.serviceWorker.controller;
   let reloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; flush().then(() => location.reload()); } });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    flush().then(() => location.reload());
+  });
 }
 
 boot();

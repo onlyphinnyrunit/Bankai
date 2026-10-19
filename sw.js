@@ -1,6 +1,6 @@
 // Bankai service worker: offline app shell + cached fonts.
 // Bump VERSION whenever any app file changes so phones pick up the update.
-const VERSION = 'bankai-v1.0.0';
+const VERSION = 'bankai-v1.1.0';
 const SHELL = [
   './',
   './index.html',
@@ -16,6 +16,10 @@ const SHELL = [
   './js/templates.js',
   './js/workout.js',
   './js/backup.js',
+  './js/aiz.js',
+  './js/aiz-brain.js',
+  './js/aiz-kb.js',
+  './js/tour.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-192.png',

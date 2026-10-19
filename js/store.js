@@ -21,6 +21,7 @@ function freshState() {
     sessions: [],
     checks: {},
     activeSession: null,
+    aiz: { messages: [] },
     settings: {
       name: '',
       theme: 'dark',
@@ -138,6 +139,16 @@ export function sanitizeState(raw) {
   for (const p of base.plans) p.items = p.items.filter((i) => base.exercises[i.exerciseId]);
   base.sessions = Array.isArray(raw.sessions) ? raw.sessions.map(cleanSession).filter(Boolean).slice(-5000) : [];
   base.activeSession = raw.activeSession ? cleanSession(raw.activeSession) : null;
+  const msgs = raw.aiz && Array.isArray(raw.aiz.messages) ? raw.aiz.messages : [];
+  base.aiz.messages = msgs.filter((m) => m && typeof m === 'object' && (m.role === 'user' || m.role === 'aiz')).slice(-60).map((m) => ({
+    id: idOk(m.id) ? m.id : uid(),
+    role: m.role,
+    text: str(m.text, 4000),
+    at: numOrNull(m.at, 0, 1e14) || Date.now(),
+    chips: Array.isArray(m.chips) ? m.chips.slice(0, 6).map((c) => str(c, 80)).filter(Boolean) : [],
+    // actions are re-validated by aiz.js before anything is applied
+    actions: Array.isArray(m.actions) ? m.actions.slice(0, 3).filter((a) => a && typeof a === 'object' && ['create_plans', 'update_plan', 'set_instructions'].includes(a.type)).map((a) => JSON.parse(JSON.stringify(a))) : [],
+  }));
   if (raw.checks && typeof raw.checks === 'object') {
     for (const [day, plans] of Object.entries(raw.checks)) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !plans || typeof plans !== 'object') continue;
@@ -154,6 +165,7 @@ export function sanitizeState(raw) {
   s.defaultRest = numOrNull(st.defaultRest, 0, 3600) ?? 60;
   s.autoRest = st.autoRest !== false;
   s.logDetails = !!st.logDetails;
+  s.tourDone = !!st.tourDone;
   if (Array.isArray(st.categories)) {
     const cats = [...new Set(st.categories.map((c) => str(c, 60).trim()).filter(Boolean))];
     if (cats.length) s.categories = cats.slice(0, 100);
